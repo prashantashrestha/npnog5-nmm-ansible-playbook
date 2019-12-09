@@ -45,6 +45,7 @@
       with_items:
         - routers.cfg
         - vms.cfg
+        - servicegroups.cfg
       tags: update_config
       notify: verify config
 
