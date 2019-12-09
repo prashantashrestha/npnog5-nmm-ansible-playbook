@@ -1,4 +1,10 @@
 [nagios_hosts]
 vm4-g4.lab.workalaya.net
 
+[snmp_hosts]
+vm4-g4.lab.workalaya.net
+
+[smokeping_hosts]
+vm4-g4.lab.workalaya.net
+
 

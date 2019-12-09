@@ -43,10 +43,10 @@
         name: "{{ item.username }}"
         password: "{{ item.password }}"
         state: present
-        ignore_errors: true
-        with_items:
+      ignore_errors: true
+      with_items:
          - { username: 'guest', password: 'guest' }
-        tags: add_guest
+      tags: add_guest
 
     - name: Configure nagios.cgi to allow guest access  
       lineinfile:

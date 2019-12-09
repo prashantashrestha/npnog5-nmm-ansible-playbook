@@ -1,0 +1,36 @@
+- hosts: smokeping_hosts
+  become: true
+  tasks:
+    - name: ensure package cache is up to date
+      apt: update_cache=yes cache_valid_time=3600
+      tags: install
+
+    - name: install smokeping and dependencies
+      package:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - smokeping
+        - fping
+      tags: install
+
+    - name: set fping setuid
+      file:
+        path: /usr/bin/fping
+        owner: root
+        group: root
+        mode: 04755
+      tags: install
+
+    - name: enable apache cgi
+      apache2_module:
+        name: cgi
+        state: present
+      tags: install
+      notify: restart apache
+
+  handlers:
+    - name: restart apache
+      service:
+        name: apache2
+        state: restarted
