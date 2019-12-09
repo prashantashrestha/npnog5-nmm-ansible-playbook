@@ -1,3 +1,62 @@
+*** Targets ***
+
+probe = FPing
+
+menu = Top
+title = Network Latency Grapher
+remark = Smokeping Latency Grapher for Network Monitoring \
+         and Management Workshop.
+
++Local
+
+menu = Local
+title = Local Network
+
+++LocalMachine
+
+menu = Local Machine
+title = This host
+host = localhost
+
+#
+# ********* Classroom Servers **********
+#
+
++NOCServers
+
+menu = NOCServers
+title = Network Management Servers
+
+++noc
+
+menu = noc
+title = Workshop NOC
+host = noc.lab.workalaya.net
+
+#
+# ******** Group {{class_group}} Hosts ***********
+#
+
++Group{{class_group}}
+
+menu = Group {{class_group}} Hosts
+title = Hosts in Group {{class_group}}
+
+++srv1
+
+menu = srv1
+title = Group {{class_group}} Shared Server 1
+host = srv1-g{{class_group}}.lab.workalaya.net
+
+{% for host in range(1,4) %}
+++vm{{host}}
+
+menu = vm{{host}}
+title = Group {{class_group}} Server 1
+host = vm1-g{{class_group}}.lab.workalaya.net
+
+{% endfor %}
+
 #
 #******** Group {{class_group}} Network Devices ********
 #
