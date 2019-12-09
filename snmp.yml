@@ -3,7 +3,7 @@
   tasks:
     - name: ensure package cache is up to date
       apt: update_cache=yes cache_valid_time=3600
-      tags: snmp_client
+      tags: snmp_client, snmpd_server
 
     - name: install snmp tools
       package:
@@ -20,3 +20,35 @@
         regexp: "^mibs :"
         line: "#mibs :"
       tags: snmp_client
+
+    - name: Create .snmp directory in /home/lab/
+      file:
+        path: "/home/lab/.snmp"
+        state: directory
+        mode: 0700
+      become: false
+      tags: snmp_client
+
+    - name: Create .snmp/snmp.conf
+      copy:
+        src: files/snmp/snmp.conf
+        dest: /home/lab/.snmp/snmp.conf
+        mode: 0600
+      become: false
+      tags: snmp_client
+
+    - name: install snmpd tools
+      package:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - snmpd
+        - libsnmp-dev
+      tags: snmpd_server
+
+    - name: Update /etc/snmp/snmpd.conf
+      lineinfile:
+        dest: "/etc/snmp/snmpd.conf"
+        regexp: "^mibs :"
+        line: "#mibs :"
+      tags: snmpd_server
