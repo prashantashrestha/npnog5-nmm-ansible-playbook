@@ -1,0 +1,13 @@
+*** General ***
+
+owner    = NOC
+contact  = lab@localhost
+mailhost = localhost
+cgiurl   = http://localhost/smokeping/smokeping.cgi
+# specify this to get syslog logging
+syslogfacility = local5
+# each probe is now run in its own process
+# disable this to revert to the old behaviour
+# concurrentprobes = no
+
+@include /etc/smokeping/config.d/pathnames

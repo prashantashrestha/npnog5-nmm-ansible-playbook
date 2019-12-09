@@ -1,0 +1,34 @@
+#
+#******** Group {{class_group}} Network Devices ********
+#
+
++Group{{class_group}}Network
+
+menu = Group {{class_group}} Network Devices
+title = Network Devices - Group {{class_group}}
+
+#
+# ********** Group {{class_group}} Border Router *********
+#
+
+++border
+menu = Border
+title = Border Router
+
++++Group{{class_group}}
+menu = Group{{class_group}}
+title = Border Router Group {{class_group}}
+host = gw-rtr.lab.workalaya.net
+
+#
+# ********** Group {{class_group}} Core Router *********
+#
+
+++core
+menu = Core
+title = Core Router
+
++++Group{{class_group}}
+menu = Group{{class_group}}
+title = Core Router Group {{class_group}}
+host = rtr1-g{{class_group}}.lab.workalaya.net
