@@ -16,4 +16,11 @@
     - name: restart apache2
       service: name=apache2 state=restarted
 
+-hosts:
+    - vm4-g4.lab.workalaya.net
+  become: true
+  tasks:
+    - name: install mysql server
+      apt: pkg=mysql-server state=present
+
       
