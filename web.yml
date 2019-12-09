@@ -2,5 +2,9 @@
     - vm4-g4.lab.workalaya.net
   become: true
   tasks:
-    - action: apt update_cache=yes cache_valid_time=3600
-    - action: apt pkg=apache2 state=present
+    - name: ensure package cache is up to date
+      apt: update_cache=yes cache_valid_time=3600
+    - name: install web server
+      apt: pkg=apache2 state=present
+    - name: install index page
+      copy: src=front.html dest=/var/www/html/index.html backup=yes
