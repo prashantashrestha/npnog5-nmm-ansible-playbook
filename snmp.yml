@@ -47,8 +47,14 @@
       tags: snmpd_server
 
     - name: Update /etc/snmp/snmpd.conf
-      lineinfile:
+      template:
+        src: templates/snmpd/snmpd.conf
         dest: "/etc/snmp/snmpd.conf"
-        regexp: "^mibs :"
-        line: "#mibs :"
+      notify: restart snmpd
       tags: snmpd_server
+
+  handlers:
+    - name: restart snmpd
+      service:
+        name: snmpd
+        state: restarted
