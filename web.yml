@@ -8,3 +8,9 @@
       apt: pkg=apache2 state=present
     - name: install index page
       copy: src=front.html dest=/var/www/html/index.html backup=yes
+      notify: restart apache2
+  handlers:
+    - name: restart apache2
+      service: name=apache2 state=restarted
+
+      
