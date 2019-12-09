@@ -37,6 +37,30 @@
       ignore_errors: true
       tags: configure
 
+    - name: Create nagios guest user
+      htpasswd:
+        path: /etc/nagios3/htpasswd.users
+        name: "{{ item.username }}"
+        password: "{{ item.password }}"
+        state: present
+        ignore_errors: true
+        with_items:
+         - { username: 'guest', password: 'guest' }
+        tags: add_guest
+
+    - name: Configure nagios.cgi to allow guest access  
+      lineinfile:
+        dest: "/etc/nagios3/cgi.cfg"
+        regexp: "^{{ item.property | regex_escape() }}="
+        line: "{{ item.property }}={{ item.value }}"   
+      with_items:
+         - { property: 'authorized_for_system_information', value: 'nagiosadmin,guest'} 
+         - { property: 'authorized_for_configuration_information', value: 'nagiosadmin,guest' }
+         - { property: 'authorized_for_all_services', value: 'nagiosadmin,guest' }
+         - { property: 'authorized_for_all_hosts', value: 'nagiosadmin,guest' }
+      tags: add_guest                 
+      notify: verify config
+
     - name: Generate the nagios monitoring templates
       template:
         src: ./templates/nagios/{{ item }}
