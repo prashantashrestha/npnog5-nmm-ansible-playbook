@@ -61,6 +61,26 @@
       tags: add_guest                 
       notify: verify config
 
+    - name: Update nagios.cfg to Enable External commands
+      lineinfile:
+        dest: "/etc/nagios3/nagios.cfg"
+        regexp: "^{{ item.property | regex_escape() }}="
+        line: "{{ item.property }}={{ item.value }}"
+      with_items:
+        - { property: 'check_external_commands', value: '1' }
+      register: update_directory_permission
+      tags: external_command
+      notify: verify config
+
+    - name: change directory permissions
+      shell: "dpkg-statoverride --update --add {{ item.user }} {{ item.group }} {{ item.permission }} {{ item.dir }}"
+      with_items:
+        - { user: 'nagios', group: 'www-data', permission: '2710', dir: '/var/lib/nagios3/rw' }
+        - { user: 'nagios', group: 'nagios', permission: '751', dir: '/var/lib/nagios3' }
+      when: update_directory_permission.changed
+      tags: external_command
+      notify: restart nagios3
+         
     - name: Generate the nagios monitoring templates
       template:
         src: ./templates/nagios/{{ item }}
