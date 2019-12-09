@@ -1,2 +1,1 @@
-vm4-g4.lab.workalaya.net ansible_ssh_user=lab
-vm4-g4 ansible_ssh_user=lab ansible_become_pass=lab
+vm4-g4.lab.workalaya.net ansible_ssh_user=lab ansible_ssh_user=lab ansible_become_pass=lab
