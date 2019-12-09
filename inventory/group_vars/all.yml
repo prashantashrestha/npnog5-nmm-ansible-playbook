@@ -1,0 +1,5 @@
+ansible_ssh_user: lab
+ansible_become_pass: lab
+
+class_password: lab
+class_group: 4

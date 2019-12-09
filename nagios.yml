@@ -1,0 +1,57 @@
+- hosts: nagios_hosts
+  become: true
+  tasks:
+    - name: ensure package cache is up to date
+      apt: update_cache=yes cache_valid_time=3600
+      tags: install
+
+    - name: install Nagios Version 3
+      package:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - nagios3
+        - nagios3-doc
+      tags: install
+
+    - name: Check nagios Users
+      stat:
+        path: /etc/nagios3/htpasswd.users
+      ignore_errors: true
+      register: nagios_user_pwfile_exists
+      tags: configure
+
+    - name: Create empty password file
+      command: touch /etc/nagios3/htpasswd.users
+      args:
+        creates: /etc/nagios3/htpasswd.users
+      when: not nagios_user_pwfile_exists
+      tags: configure
+
+    - name: Create nagios admin user
+      htpasswd:
+        path: /etc/nagios3/htpasswd.users
+        name: nagiosadmin
+        password: "{{ class_password }}"
+        state: present
+      ignore_errors: true
+      tags: configure
+
+    - name: Generate the nagios monitoring templates
+      template:
+        src: ./templates/nagios/{{ item }}
+        dest: /etc/nagios3/conf.d
+        backup: yes
+      with_items:
+        - routers.cfg
+        - vms.cfg
+      tags: update_config
+      notify: verify config
+
+  handlers:
+    - name: verify config
+      shell: nagios3 -v /etc/nagios3/nagios.cfg
+      notify: restart nagios3
+
+    - name: restart nagios3
+      service: name=nagios3 state=restarted  
