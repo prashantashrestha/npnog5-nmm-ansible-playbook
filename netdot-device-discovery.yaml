@@ -1,0 +1,14 @@
+- hosts: netdot_hosts
+  become: true
+  tasks:
+    - name: copy device list for auto discovery
+      copy:
+        src: files/netdot/discoverme.txt
+        dest: /tmp/
+      tags: discovery
+
+    - name: run device discovery
+      command: bin/updatedevices.pl -E /tmp/discoverme.txt -IAF
+      args:
+        chdir: /usr/local/netdot
+      tags: discovery

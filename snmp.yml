@@ -53,6 +53,47 @@
       notify: restart snmpd
       tags: snmpd_server
 
+    - name: Create /var/lib/snmp/mibs/cisco
+      file:
+        path: "/var/lib/snmp/mibs/cisco"
+        state: directory
+        mode: 0700
+      tags: mibs
+
+    - name: check if mibs exists
+      stat:
+        path: '/var/lib/snmp/mibs/cisco/{{ item }}'
+      register: mib_files
+      with_items:
+      - CISCO-SMI.my
+      - CISCO-ENVMON-MIB.my
+      tags: mibs
+
+    - name: Check if mib files exist
+      set_fact:
+        mib_file_stat: "{{ mib_file_stat|default({}) | combine({item.item: item.stat.exists}) }}"
+      with_items: '{{ mib_files.results }}'
+      tags: mibs
+
+    - name: Download mibs
+      get_url:
+        url: http://www.lab.workalaya.net/downloads/mibs/{{ item }}
+        dest: /var/lib/snmp/mibs/cisco/{{ item }}
+      when: not mib_file_stat[item]
+      with_items:
+        - CISCO-SMI.my
+        - CISCO-ENVMON-MIB.my
+      tags: mibs
+
+    - name: update /etc/snmp/snmp.conf file
+      lineinfile:
+        dest: "/etc/snmp/snmp.conf"
+        line: "{{item}}"
+      with_items:
+        - "mibdirs +/var/lib/snmp/mibs/cisco"
+        - "mibs +CISCO-ENVMON-MIB:CISCO-SMI"
+      tags: mibs
+
   handlers:
     - name: restart snmpd
       service:

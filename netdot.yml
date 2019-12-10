@@ -1,0 +1,156 @@
+- hosts: netdot_hosts
+  become: true
+  tasks:
+    - name: ensure package cache is up to date
+      apt: update_cache=yes cache_valid_time=3600
+      tags: install-base
+
+    - name: install netdot required packages
+      package:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - build-essential
+        - mysql-server
+        - mysql-client
+      tags: install-base
+
+    - name: check for netdot install directory
+      stat:
+        path: /usr/local/netdot
+      register: netdot_check
+      tags: install
+
+    - name: netdot
+      block:
+        - name: check local netdot source exist
+          git:
+            # repo: https://github.com/cvicente/Netdot.git
+            repo: http://www.lab.workalaya.net/git/Netdot.git
+            dest: /usr/local/src/Netdot
+            clone: no
+            update: no
+          register: netdot_source
+
+        - name: fetch netdot source
+          git:
+            # repo: https://github.com/cvicente/Netdot.git
+            repo: http://www.lab.workalaya.net/git/Netdot.git
+            dest: /usr/local/src/Netdot
+          when: netdot_source.changed
+
+        # next three tasks plus the netdot-perldeps.patch patch are a hack.
+        # they disable the call to netdisco-mibs-downloader and pull the content
+        # manually to where netdisco-mibs-installer expects them.
+        # Two reasons:
+        #     - sourceforge.net was down and required javascript
+        #     - we wanted to reduce time and decrease bandwidth usage all hosts from www.lab.workalaya.net for downloads
+
+        - name: delete netdisco tmp dir
+          file: path=/tmp/netdisco-mibs state=absent
+
+        - name: create netdisco tmp dir
+          file: path=/tmp/netdisco-mibs state=directory owner=root
+
+        - name: fetch netdisco mibs
+          get_url:
+            # url: 'https://sourceforge.net/projects/netdisco/files/netdisco-mibs/1.0/netdisco-mibs-1.0.tar.gz/download'
+            url: 'http://www.lab.workalaya.net/downloads/netdot/netdisco-mibs-1.0.tar.gz'
+            dest: '/tmp/netdisco-mibs/netdisco-mibs-1.0.tar.gz'
+          retries: 5
+          delay: 10
+
+        - name: copy patches
+          copy:
+            src: 'files/netdot/{{ item }}'
+            dest: '/usr/local/src/Netdot/{{ item }}'
+          with_items:
+            - netdot-perldeps.patch
+
+        - name: apply patches
+          shell: patch -p0 < {{item}}
+          args:
+            chdir: '/usr/local/src/Netdot'
+          with_items:
+            - netdot-perldeps.patch
+          ignore_errors: true
+
+        - name: patch netdot for ubuntu 18.0x version
+          replace:
+            path: "/usr/local/src/Netdot/bin/perldeps.pl"
+            replace: "{{ item.replace }}"
+            regexp: "{{ item.search }}"
+          with_items:
+            - { search: "dnssec-tools", replace: "libnet-dns-zonefile-fast-perl" }
+            - { search: "deb http", replace: "deb [allow-insecure=yes] http" }
+            - { search: "deb-src http", replace: "deb-src [allow-insecure=yes] http" }
+
+        - name: build netdot pre-requisites
+          shell: echo -e "mysql\ny\ny\ny\n" | make apt-install
+          args:
+            chdir: '/usr/local/src/Netdot'
+
+        - name: apply patches to Perl DBI.pm
+          shell: patch /usr/share/perl5/Class/DBI.pm  < DBI.pm.patch
+          args:
+            chdir: '/usr/local/src/Netdot/patches/ubuntu-1604/'
+          ignore_errors: true
+
+        - name: copy Default.conf to Site.conf
+          command: cp etc/Default.conf etc/Site.conf
+          args:
+            chdir: '/usr/local/src/Netdot/'
+            creates: 'etc/Site.conf'
+
+        - name: edit Site.conf before building
+          lineinfile:
+          args:
+            dest: '/usr/local/src/Netdot/etc/Site.conf'
+            regexp: '{{ item.regexp }}'
+            line: '{{ item.line }}'
+            state: present
+          with_items:
+            - { regexp: "^NETDOTNAME", line: "NETDOTNAME => '{{inventory_hostname}}'," }
+            - { regexp: "^DB_DBA_PASSWORD", line: "DB_DBA_PASSWORD =>  '{{class_password}}'," }
+            - { regexp: "^DEFAULT_SNMPCOMMUNITIES", line: "DEFAULT_SNMPCOMMUNITIES  =>  ['NetManage', 'public']," }
+            - { regexp: "^NMS_DEVICE", line: "NMS_DEVICE => '{{inventory_hostname}}'," }
+            - { regexp: "^DEFAULT_DNSDOMAIN", line: "DEFAULT_DNSDOMAIN  => 'lab.workalaya.net'," }
+            - { regexp: "^DEVICE_NAMING_METHOD_ORDER", line: "DEVICE_NAMING_METHOD_ORDER => [ 'sysname', 'snmp_target' ]," }
+
+        - name: insert database schema
+          command: make installdb
+          args:
+            chdir: /usr/local/src/Netdot/
+          ignore_errors: yes
+
+        - name: install netdot
+          command: make install APACHEUSER=www-data APACHEGROUP=www-data
+          args:
+            chdir: /usr/local/src/Netdot/
+            creates: /usr/local/netdot
+
+        - name: add netdot configuration to apache
+          file:
+            src: /usr/local/netdot/etc/netdot_apache24_local.conf
+            dest: /etc/apache2/conf-available/netdot.conf
+            state: link
+
+        - name: enable netdot apache24 config
+          command: a2enconf netdot
+          args:
+            creates: /etc/apache2/conf-enabled/netdot.conf
+          notify: restart apache2
+
+        - name: install cron job
+          command: cp netdot.cron /etc/cron.d/netdot
+          args:
+            chdir: '/usr/local/src/Netdot/'
+            creates: /etc/cron.d/netdot
+      when: netdot_check.stat.isdir is not defined or netdot_check.stat.isdir == false
+      tags: install
+
+  handlers:
+    - name: restart apache2
+      service:
+        name: apache2
+        state: restarted

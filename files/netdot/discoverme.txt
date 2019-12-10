@@ -1,0 +1,6 @@
+rtr1-g4.lab.workalaya.net
+vm1-g4.lab.workalaya.net
+vm2-g4.lab.workalaya.net
+vm3-g4.lab.workalaya.net
+vm4-g4.lab.workalaya.net
+srv1-g4.lab.workalaya.net
